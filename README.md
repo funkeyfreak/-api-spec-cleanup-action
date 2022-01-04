@@ -97,7 +97,7 @@ jobs:
           files: "${{ env.FILE_PATH }}"
       
       - name: Clean Up OpenAPI Doc
-        uses: aparrett-hbo/api-spec-cleanup-action@v1
+        uses: funkeyfreak/api-spec-cleanup@v1
         with:
           file: ${{ env.FILE_PATH }} 
 
