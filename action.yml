@@ -1,11 +1,10 @@
-name: 'Your name here'
-description: 'Provide a description here'
-author: 'Your name or organization here'
+name: 'Open API Doc Cleanup Action'
+description: 'Performs an Opinionated Cleanup on an Open API 3 Document'
+author: 'Anthony Parrett'
 inputs:
-  milliseconds: # change this
+  file:
     required: true
-    description: 'input description here'
-    default: 'default value if applicable'
+    description: 'Path to API Document'
 runs:
   using: 'node12'
   main: 'dist/index.js'

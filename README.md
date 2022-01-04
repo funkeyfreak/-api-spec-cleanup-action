@@ -1,105 +1,122 @@
-<p align="center">
-  <a href="https://github.com/actions/typescript-action/actions"><img alt="typescript-action status" src="https://github.com/actions/typescript-action/workflows/build-test/badge.svg"></a>
-</p>
+# API Document Cleanup Action
+The purpose of this action is to perform a cleanup of an Open API Document so that it will properly generate a Typescript client.
 
-# Create a JavaScript Action using TypeScript
+## Functionality
+**Converts boolean enums to booleans in operation parameters.**
 
-Use this template to bootstrap the creation of a TypeScript action.:rocket:
+Converts parameters that have  `enum: ['false', 'true']` (or reverse) to `type: boolean` and removes the enum property.
 
-This template includes compilation support, tests, a validation workflow, publishing, and versioning guidance.  
+**Moves request body schemas that are under a body property up one level to the schema property.**
 
-If you are new, there's also a simpler introduction.  See the [Hello World JavaScript Action](https://github.com/actions/hello-world-javascript-action)
+Changes `{ schema: { body: { title } } }` to `{ schema: { title } }`
 
-## Create an action from this template
+**When the required property is empty, it is removed.**
 
-Click the `Use this Template` and provide the new repo details for your action
+Removes instances of `{ required: [] }` in request body schemas. 
 
-## Code in Main
+**The schemas listed in path and query params (under the properties params and query) are merged into schemas of the same name in the parameters property.**
 
-> First, you'll need to have a reasonably modern version of `node` handy. This won't work with versions older than 9, for instance.
+Here, properties `params and query` from `paths[path][method].requestBody.content[media].schema` are merged into the `paths[path][method].parameters` property, preferring the properties that already exist in the `parameters` property. These parameter values are preferred because they are more likely to be a better a representation of the types expected from an API client. 
 
-Install the dependencies  
-```bash
-$ npm install
-```
-
-Build the typescript and package it for distribution
-```bash
-$ npm run build && npm run package
-```
-
-Run the tests :heavy_check_mark:  
-```bash
-$ npm test
-
- PASS  ./index.test.js
-  ✓ throws invalid number (3ms)
-  ✓ wait 500 ms (504ms)
-  ✓ test runs (95ms)
-
-...
-```
-
-## Change action.yml
-
-The action.yml defines the inputs and output for your action.
-
-Update the action.yml with your name, description, inputs and outputs for your action.
-
-See the [documentation](https://help.github.com/en/articles/metadata-syntax-for-github-actions)
-
-## Change the Code
-
-Most toolkit and CI/CD operations involve async operations so the action is run in an async function.
-
-```javascript
-import * as core from '@actions/core';
-...
-
-async function run() {
-  try { 
-      ...
-  } 
-  catch (error) {
-    core.setFailed(error.message);
-  }
+Example input
+```js
+// params object in paths[path][method].requestBody.content[media].schema
+{ 
+    params: {
+        properties: {
+            resourceId: { type: 'string', minLength: 1 }
+        }
+    }
 }
-
-run()
+// paths[path][method].parameters
+[{
+    name: 'resourceId',
+    in: 'path',
+    schema: {
+        type: 'number'
+    }
+}]
+```
+Example result 
+```js
+// paths[path][method].parameters
+[{
+    name: 'resourceId',
+    in: 'path',
+    schema: {
+        type: 'number',
+        minLength: 1
+    }
+}]
 ```
 
-See the [toolkit documentation](https://github.com/actions/toolkit/blob/master/README.md#packages) for the various packages.
+**Path and query params (under the properties params and query) are deleted out of requestBody properties**
 
-## Publish to a distribution branch
+After the `params` and `query` properties in `paths[path][method].requestBody.content[media].schema` are merged into ```paths[path][method].parameters``` they are deleted from the requestBody.
 
-Actions are run from GitHub repos so we will checkin the packed dist folder. 
+**Creates parameters if they are missing**
 
-Then run [ncc](https://github.com/zeit/ncc) and push the results:
-```bash
-$ npm run package
-$ git add dist
-$ git commit -a -m "prod dependencies"
-$ git push origin releases/v1
-```
+If parameters exist in `params` or `query` properties in `paths[path][method].requestBody.content[media].schema`, but do not exist in `paths[path][method].parameters`, they are created in `paths[path][method].parameters`.
 
-Note: We recommend using the `--license` option for ncc, which will create a license file for all of the production node modules used in your project.
 
-Your action is now published! :rocket: 
+**Operation ids are converted to camelCase.**
 
-See the [versioning documentation](https://github.com/actions/toolkit/blob/master/docs/action-versioning.md)
+To create operationIds that can easily be used as function names, they are converted to camelCase. For example `My Operation - Name` becomes `myOperationName`.
 
-## Validate
+**Operation ids are made unique.**
 
-You can now validate the action by referencing `./` in a workflow in your repo (see [test.yml](.github/workflows/test.yml))
+This is accomplished by appending a number to duplicate ids.
 
+**Removes any YAML anchors in YAML files**
+
+Some libraries generate YAML anchors automatically for any duplicate objects. These are removed to allow for proper API generation.
+
+**Converts multi-line descriptions into single lines for YAML files**
+
+This is accomplished by removing the default line limit in `js-yaml`. If necessary, this can be made configurable at a later date.
+
+## Example Usage
 ```yaml
-uses: ./
-with:
-  milliseconds: 1000
+# .github/workflows/cleanup-action.yml
+name: My Cleanup Action
+
+env: 
+  FILE_PATH: lib/openapi.yaml
+
+jobs:
+  validate_openapi_301:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Check if OpenAPI Schema Exists
+        id: check_openapi_file
+        uses: andstor/file-existence-action@v1
+        with:
+          files: "${{ env.FILE_PATH }}"
+      
+      - name: Clean Up OpenAPI Doc
+        uses: aparrett-hbo/api-spec-cleanup-action@v1
+        with:
+          file: ${{ env.FILE_PATH }} 
+
+      - name: Commit newly generated schema
+        uses: stefanzweifel/git-auto-commit-action@v4
+        with:
+          commit_message: 'github actions: openapi schema modified'
+          file_pattern: ${{ env.FILE_PATH }}
 ```
 
-See the [actions tab](https://github.com/actions/typescript-action/actions) for runs of this action! :rocket:
+## Dev
+Note: this process may change if breaking changes are introduced or semantic versioning becomes necessary. **Currently, all changes are pushed to v1.**
+1. Make changes to `main`
+2. Run `npm run package`
+3. Commit
+4. Run `npm run release`
+5. Push
 
-## Usage:
-
-After testing you can [create a v1 tag](https://github.com/actions/toolkit/blob/master/docs/action-versioning.md) to reference the stable and latest V1 action
+## Test
+```
+npm run test
+```

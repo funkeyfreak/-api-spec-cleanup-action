@@ -1,0 +1,40 @@
+{
+    "openapi": "3.0.3",
+    "info": {
+        "title": "",
+        "version": "1"
+    },
+    "servers": [],
+    "paths": {
+        "/resource": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "headers": {},
+                        "content": {}
+                    }
+                },
+                "summary": "Some resource",
+                "operationId": "operationId",
+                "description": "",
+                "tags": [],
+                "parameters": []
+            },
+            "post": {
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "headers": {},
+                        "content": {}
+                    }
+                },
+                "summary": "Some resource",
+                "operationId": "operationId2",
+                "description": "",
+                "tags": [],
+                "parameters": []
+            }
+        }
+    }
+}
