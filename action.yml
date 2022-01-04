@@ -1,7 +1,8 @@
-name: 'Open API Doc Cleanup Action'
+name: 'Open API Specification Cleanup 🧹'
 description: 'Performs an Opinionated Cleanup on an Open API 3 Document'
-icon: activity
-color: black
+branding:
+  icon: activity
+  color: black
 author: 'Dalin Williams'
 inputs:
   file:
