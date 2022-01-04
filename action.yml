@@ -1,10 +1,12 @@
 name: 'Open API Doc Cleanup Action'
 description: 'Performs an Opinionated Cleanup on an Open API 3 Document'
-author: 'Anthony Parrett'
+icon: activity
+color: black
+author: 'Dalin Williams'
 inputs:
   file:
     required: true
-    description: 'Path to API Document'
+    description: 'The Path to the API Document'
 runs:
   using: 'node12'
   main: 'dist/index.js'
